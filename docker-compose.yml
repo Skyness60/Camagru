@@ -7,10 +7,17 @@ services:
     build: ./docker/php
     volumes:
       - ./src:/var/www/html
+      - ./vendor:/var/www/html/vendor
+      - ./app:/var/www/html/app
     depends_on:
       - db
       - redis
-
+  composer:
+    image: composer:latest
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - ./vendor:/app/vendor
   php-fpm-exporter:
     image: hipages/php-fpm_exporter:latest
     ports:
@@ -54,6 +61,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
+
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
