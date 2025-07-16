@@ -1,0 +1,3 @@
+https://grafana.com/grafana/dashboards/17452-nginx/
+https://grafana.com/grafana/dashboards/4912-kubernetes-php-fpm/
+https://grafana.com/grafana/dashboards/763-redis-dashboard-for-prometheus-redis-exporter-1-x/

@@ -1,2 +1,4 @@
+# .gitignore
+
 # 🔐 ENV secrets
 .env
