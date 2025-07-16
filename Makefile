@@ -1,11 +1,19 @@
 up:
 	docker-compose up -d --build
+	@if [ ! -d "vendor" ]; then \
+		echo "📦 Installing Composer dependencies..."; \
+		docker-compose run --rm composer install; \
+	else \
+		echo "✅ Composer dependencies already installed."; \
+	fi
+	docker-compose run --rm composer dump-autoload
 
-composer:
-	docker-compose run --rm composer install
+composer_re:
+	docker-compose run --rm composer install --no-interaction --prefer-dist
+	docker-compose run --rm composer dump-autoload
 
-composer-update:
-	docker-compose run --rm composer update
+test:
+	docker-compose exec php ./vendor/bin/phpunit || true
 
 down:
 	docker-compose down -v
@@ -32,4 +40,4 @@ re:
 	docker-compose down -v --remove-orphans
 	docker-compose up -d --build
 
-.PHONY: up down logs ps sh db fullclean re
+.PHONY: up test down logs ps sh db fullclean re
