@@ -2,3 +2,22 @@
 
 # 🔐 ENV secrets
 .env
+
+# 📦 Composer dependencies
+/vendor
+/src/vendor/
+
+# 📦 Fichiers générés par Composer
+/composer.lock
+
+# Logs, caches, fichiers temporaires PHP
+*.log
+*.cache
+*.tmp
+*.swp
+
+# Dossiers système et IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml

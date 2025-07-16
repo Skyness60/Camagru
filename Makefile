@@ -1,6 +1,12 @@
 up:
 	docker-compose up -d --build
 
+composer:
+	docker-compose run --rm composer install
+
+composer-update:
+	docker-compose run --rm composer update
+
 down:
 	docker-compose down -v
 
