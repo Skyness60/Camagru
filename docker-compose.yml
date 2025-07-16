@@ -9,6 +9,7 @@ services:
       - ./src:/var/www/html
       - ./vendor:/var/www/html/vendor
       - ./app:/var/www/html/app
+      - ./tests:/var/www/html/tests
     depends_on:
       - db
       - redis
