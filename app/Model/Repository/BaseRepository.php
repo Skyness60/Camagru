@@ -1,6 +1,8 @@
 <?php
 // app/Model/Repository/BaseRepository.php
-namespace App\Core\ORM;
+namespace App\Model\Repository;
+
+use App\Core\ORM\EntityManager;
 
 use PDO;
 
