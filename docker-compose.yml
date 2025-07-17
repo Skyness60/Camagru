@@ -10,6 +10,7 @@ services:
       - ./vendor:/var/www/html/vendor
       - ./app:/var/www/html/app
       - ./tests:/var/www/html/tests
+      - ./.env:/var/www/html/.env
     depends_on:
       - db
       - redis

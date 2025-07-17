@@ -6,8 +6,8 @@ namespace Tests;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
-use App\Models\User;
-use App\Models\UserPermission;
+use App\Model\Entity\User;
+use App\Model\Entity\UserRole;
 
 #[CoversClass(User::class)]
 final class UserTest extends TestCase
@@ -18,10 +18,10 @@ final class UserTest extends TestCase
         $firstName = 'John';
         $lastName = 'Doe';
         $username = 'johndoe';
-        $permission = UserPermission::USER;
+        $role = UserRole::USER;
         $password = 'password123';
 
-        $user = new User(email: $email, firstName: $firstName, lastName: $lastName, username: $username, password: $password, permission: $permission);
+        $user = new User(email: $email, firstName: $firstName, lastName: $lastName, username: $username, password: $password, role: $role);
 
         $this->assertInstanceOf(User::class, $user);
         $this->assertSame($user->id, $user->id);
@@ -29,7 +29,7 @@ final class UserTest extends TestCase
         $this->assertSame($firstName, $user->getFirstName());
         $this->assertSame($lastName, $user->getLastName());
         $this->assertSame($username, $user->getUsername());
-        $this->assertSame($permission, $user->getPermission());
+        $this->assertSame($role, $user->getRole());
         $this->assertInstanceOf(\DateTimeImmutable::class, $user->getCreatedAt());
         $this->assertNull($user->getUpdatedAt());
         $this->assertTrue(password_verify($password, $user->getPassword()));

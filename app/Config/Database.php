@@ -11,7 +11,7 @@ final class Database
             sprintf(
                 "mysql:host=%s;dbname=%s;charset=utf8mb4",
                 $_ENV['MYSQL_HOST'],
-                $_ENV['MYSQL_DB']
+                $_ENV['MYSQL_DATABASE']
             ),
             $_ENV['MYSQL_USER'],
             $_ENV['MYSQL_PASSWORD'],
