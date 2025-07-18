@@ -13,7 +13,7 @@ composer_re:
 	docker-compose run --rm composer dump-autoload
 
 test:
-	docker-compose exec php ./vendor/bin/phpunit || true
+	docker-compose exec php ./vendor/bin/phpunit tests/ || true
 
 down:
 	docker-compose down -v

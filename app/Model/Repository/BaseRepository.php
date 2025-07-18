@@ -1,42 +1,18 @@
 <?php
-// app/Model/Repository/BaseRepository.php
 namespace App\Model\Repository;
 
-use App\Core\ORM\EntityManager;
+use App\Core\ORM\EntityRepository;
 
-use PDO;
-
-class BaseRepository
+class BaseRepository extends EntityRepository
 {
-    protected EntityManager $em;
-    protected string $entityClass;
-
-    public function __construct(EntityManager $em, string $entityClass)
+    // Méthodes communes optionnelles
+    public function count(array $criteria = []): int
     {
-        $this->em = $em;
-        $this->entityClass = $entityClass;
+        return count($this->findBy($criteria));
     }
-
-    public function find(int $id): ?object
+    
+    public function exists(array $criteria): bool
     {
-        return $this->em->find($id);
-    }
-
-    /**
-     * Recherche par critère simple (ex: ['username' => 'Sami'])
-     * Retourne le premier résultat ou null
-     */
-    public function findOneBy(array $criteria): ?object
-    {
-        $table = $this->em->resolveTableNameForEntity($this->entityClass);
-        $fields = array_keys($criteria);
-        $where = implode(' AND ', array_map(fn($f) => "$f = :$f", $fields));
-
-        $sql = "SELECT * FROM $table WHERE $where LIMIT 1";
-        $stmt = $this->em->getConnection()->prepare($sql);
-        $stmt->execute($criteria);
-
-        $data = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $data ? $this->em->mapToEntityForClass($data, $this->entityClass) : null;
+        return $this->findOneBy($criteria) !== null;
     }
 }

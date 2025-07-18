@@ -10,7 +10,7 @@ use App\Core\ORM\Table;
 #[Table('users')]
 class User
 {
-    public int $id;
+    private ?int $id = null;
 
     private string $email;
 
@@ -30,7 +30,6 @@ class User
 
     public function __construct(string $email, string $firstName, string $lastName, string $username, string $password, UserRole $role)
     {
-        $this->id = random_int(1, 1000); // Pour l'instant on a pas de table de base de données
         $this->email = $email;
         $this->firstName = $firstName;
         $this->lastName = $lastName;
@@ -39,6 +38,11 @@ class User
         $this->role = $role;
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = null;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
     }
 
     public function getEmail(): string

@@ -1,103 +1,58 @@
 <?php
-// app/Core/ORM/EntityManager.php
-
 namespace App\Core\ORM;
 
 use PDO;
-use ReflectionClass;
 
 class EntityManager
 {
-    private string $entityClass;
-
     private PDO $connection;
+    private EntityHydrator $hydrator;
+    private array $persisters = [];
+    
+    private UnitOfWork $unitOfWork;
 
-    public function __construct(string $entityClass, PDO $connection)
+    public function __construct(PDO $connection)
     {
-        if (!class_exists($entityClass)) {
-            throw new \InvalidArgumentException("Entity class {$entityClass} does not exist.");
-        }
-
-        $this->entityClass = $entityClass;
         $this->connection = $connection;
+        $this->hydrator = new EntityHydrator();
+        $this->unitOfWork = new UnitOfWork($this);
     }
 
-    public function find(int $id): ?object
+    public function find(string $entityClass, int $id): ?object
     {
-        $table = $this->resolveTableName();
-
-        $stmt = $this->connection->prepare("SELECT * FROM {$table} WHERE id = :id");
-        $stmt->execute(['id' => $id]);
-
-        $data = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$data) {
-            return null;
-        }
-
-        return $data ? $this->mapToEntity($data) : null;
+        $persister = $this->getEntityPersister($entityClass);
+        $data = $persister->load($id);
+        
+        return $data ? $this->hydrator->hydrate($data, $entityClass) : null;
     }
 
-    private function resolveTableName(): string
+    public function findAll(string $entityClass): array
     {
-        $reflection = new ReflectionClass($this->entityClass);
-        $attributes = $reflection->getAttributes(Table::class);
-
-        if (count($attributes) === 0) {
-            throw new \RuntimeException("Missing #[Table] attribute on class {$this->entityClass}");
-        }
-
-        /** @var Table $tableAttr */
-        $tableAttr = $attributes[0]->newInstance();
-
-        return $tableAttr->name;
+        $persister = $this->getEntityPersister($entityClass);
+        $dataArray = $persister->loadAll();
+        
+        return $this->hydrator->hydrateAll($dataArray, $entityClass);
     }
 
-    private function mapToEntity(array $data): object
+    public function findBy(string $entityClass, array $criteria): array
     {
-        $refl = new ReflectionClass($this->entityClass);
-        $constructor = $refl->getConstructor();
+        $persister = $this->getEntityPersister($entityClass);
+        $dataArray = $persister->loadAll($criteria);
+        
+        return $this->hydrator->hydrateAll($dataArray, $entityClass);
+    }
 
-        $args = [];
-        if ($constructor) {
-            foreach ($constructor->getParameters() as $param) {
-                $name = $param->getName();
-                $value = $data[$name] ?? null;
-                
-                // Handle enum types
-                $type = $param->getType();
-                if ($type && !$type->isBuiltin() && enum_exists($type->getName())) {
-                    $enumClass = $type->getName();
-                    $value = $enumClass::from($value);
-                }
-                
-                $args[] = $value;
-            }
-        }
+    public function findOneBy(string $entityClass, array $criteria): ?object
+    {
+        $persister = $this->getEntityPersister($entityClass);
+        $data = $persister->loadOneBy($criteria);
+        
+        return $data ? $this->hydrator->hydrate($data, $entityClass) : null;
+    }
 
-        $instance = $refl->newInstanceArgs($args);
-
-        foreach ($data as $key => $value) {
-            if ($refl->hasProperty($key)) {
-                $prop = $refl->getProperty($key);
-                $type = $prop->getType();
-                
-                // Handle enum types for properties
-                if ($type && !$type->isBuiltin() && enum_exists($type->getName())) {
-                    $enumClass = $type->getName();
-                    $value = $enumClass::from($value);
-                }
-                
-                // Handle DateTimeImmutable types
-                if ($type && ($type->getName() === 'DateTimeImmutable' || $type->getName() === '\DateTimeImmutable') && is_string($value)) {
-                    $value = new \DateTimeImmutable($value);
-                }
-                
-                $prop->setAccessible(true);
-                $prop->setValue($instance, $value);
-            }
-        }
-
-        return $instance;
+    public function getRepository(string $entityClass): EntityRepository
+    {
+        return new EntityRepository($this, $entityClass);
     }
 
     public function getConnection(): PDO
@@ -105,67 +60,33 @@ class EntityManager
         return $this->connection;
     }
 
-    public function resolveTableNameForEntity(string $entityClass): string
+    public function getEntityPersister(string $entityClass): EntityPersister
     {
-        $reflection = new ReflectionClass($entityClass);
-        $attributes = $reflection->getAttributes(Table::class);
-
-        if (count($attributes) === 0) {
-            throw new \RuntimeException("Missing #[Table] attribute on class {$entityClass}");
+        if (!isset($this->persisters[$entityClass])) {
+            $this->persisters[$entityClass] = new EntityPersister($this->connection, $entityClass);
         }
-
-        /** @var Table $tableAttr */
-        $tableAttr = $attributes[0]->newInstance();
-
-        return $tableAttr->name;
+        
+        return $this->persisters[$entityClass];
     }
 
-    public function mapToEntityForClass(array $data, string $entityClass): object
+
+   public function persist(object $entity): void
     {
-        $reflection = new ReflectionClass($entityClass);
-        $constructor = $reflection->getConstructor();
-
-        $args = [];
-        if ($constructor) {
-            foreach ($constructor->getParameters() as $param) {
-                $name = $param->getName();
-                $value = $data[$name] ?? null;
-                
-                // Handle enum types
-                $type = $param->getType();
-                if ($type && !$type->isBuiltin() && enum_exists($type->getName())) {
-                    $enumClass = $type->getName();
-                    $value = $enumClass::from($value);
-                }
-                
-                $args[] = $value;
-            }
-        }
-
-        $instance = $reflection->newInstanceArgs($args);
-
-        foreach ($data as $key => $value) {
-            if ($reflection->hasProperty($key)) {
-                $prop = $reflection->getProperty($key);
-                $type = $prop->getType();
-                
-                // Handle enum types for properties
-                if ($type && !$type->isBuiltin() && enum_exists($type->getName())) {
-                    $enumClass = $type->getName();
-                    $value = $enumClass::from($value);
-                }
-                
-                // Handle DateTimeImmutable types
-                if ($type && ($type->getName() === 'DateTimeImmutable' || $type->getName() === '\DateTimeImmutable') && is_string($value)) {
-                    $value = new \DateTimeImmutable($value);
-                }
-                
-                $prop->setAccessible(true);
-                $prop->setValue($instance, $value);
-            }
-        }
-
-        return $instance;
+        $this->unitOfWork->persist($entity);
     }
 
+    public function remove(object $entity): void
+    {
+        $this->unitOfWork->remove($entity);
+    }
+
+    public function flush(): void
+    {
+        $this->unitOfWork->flush();
+    }
+
+    public function clear(): void
+    {
+        $this->unitOfWork->clear();
+    }
 }

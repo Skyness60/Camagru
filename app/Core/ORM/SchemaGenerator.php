@@ -1,17 +1,16 @@
 <?php
-// app/Core/ORM/SchemaGenerator.php
 namespace App\Core\ORM;
 
+use PDO;
 use ReflectionClass;
-use ReflectionProperty;
 
 class SchemaGenerator
 {
-    private \PDO $pdo;
+    private PDO $connection;
 
-    public function __construct(\PDO $pdo)
+    public function __construct(PDO $connection)
     {
-        $this->pdo = $pdo;
+        $this->connection = $connection;
     }
 
     public function generateTable(string $entityClass): void
@@ -23,52 +22,66 @@ class SchemaGenerator
             throw new \RuntimeException("Missing #[Table] attribute on class {$entityClass}");
         }
 
-        /** @var Table $tableAttr */
-        $tableAttr = $attributes[0]->newInstance();
-        $table = $tableAttr->name;
+        $tableName = $attributes[0]->newInstance()->name;
+        $columns = [];
 
-        $columnsSql = [];
-
-        /** @var ReflectionProperty $property */
         foreach ($reflection->getProperties() as $property) {
-            $name = $property->getName();
-            $type = $property->getType()?->getName();
-
-            $sqlType = match ($type) {
-                'int' => 'INT',
-                'string' => 'VARCHAR(255)',
-                'DateTimeImmutable', '\DateTimeImmutable' => 'DATETIME',
-                'bool' => 'TINYINT(1)',
-                default => null,
-            };
-
-            // Handle enum types
-            if (!$sqlType && $type && enum_exists($type)) {
-                // For enums, use VARCHAR with appropriate length
-                $sqlType = 'VARCHAR(50)';
+            $columnName = $property->getName();
+            $type = $this->getColumnType($property);
+            
+            if ($columnName === 'id') {
+                $columns[] = "`id` INT AUTO_INCREMENT PRIMARY KEY";
+            } else {
+                $columns[] = "`$columnName` $type";
             }
-
-            if (!$sqlType) {
-                continue; // skip unknown or unsupported types (e.g. objects)
-            }
-
-            $null = $property->getType()?->allowsNull() ? 'NULL' : 'NOT NULL';
-
-            // Primary key special case
-            if ($name === 'id' && $sqlType === 'INT') {
-                $columnsSql[] = "`id` INT AUTO_INCREMENT PRIMARY KEY";
-                continue;
-            }
-
-            $columnsSql[] = "`$name` $sqlType $null";
         }
 
+        $dropSql = "DROP TABLE IF EXISTS `$tableName`";
+        $this->connection->exec($dropSql);
+
         $sql = sprintf(
-            "CREATE TABLE IF NOT EXISTS `%s` (%s) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
-            $table,
-            implode(", ", $columnsSql)
+            "CREATE TABLE `%s` (%s)",
+            $tableName,
+            implode(', ', $columns)
         );
 
-        $this->pdo->exec($sql);
+        $this->connection->exec($sql);
+    }
+
+    private function getColumnType(\ReflectionProperty $property): string
+    {
+        $type = $property->getType();
+        
+        if (!$type instanceof \ReflectionNamedType) {
+            return 'TEXT';
+        }
+
+        return match ($type->getName()) {
+            'int' => 'INT',
+            'float' => 'FLOAT',
+            'bool' => 'BOOLEAN',
+            'string' => 'VARCHAR(255)',
+            \DateTimeImmutable::class => 'DATETIME',
+            default => $this->handleEnumType($type) ?: 'VARCHAR(255)'
+        };
+    }
+
+    private function handleEnumType(\ReflectionNamedType $type): ?string
+    {
+        $typeName = $type->getName();
+        
+        if (enum_exists($typeName)) {
+            $reflection = new \ReflectionEnum($typeName);
+            if ($reflection->isBacked()) {
+                $backingType = $reflection->getBackingType();
+                return match ($backingType->getName()) {
+                    'int' => 'INT',
+                    'string' => 'VARCHAR(50)',
+                    default => 'VARCHAR(255)'
+                };
+            }
+        }
+        
+        return null;
     }
 }
