@@ -205,6 +205,66 @@ Camagru/
 - **Prometheus** : [http://localhost:9090](http://localhost:9090)
 - **Traefik** : [http://localhost:8082](http://localhost:8082)
 
+# ORM PHP - Documentation
+
+## Utilisation de l'ORM
+
+### 1. Initialisation de l'EntityManager
+```php
+$pdo = new PDO($dsn, $user, $password);
+$em = new EntityManager($pdo);
+```
+
+### 2. Utilisation d'un Repository
+```php
+$userRepo = new UserRepository($em);
+```
+
+### 3. Trouver une entité par son ID
+```php
+$user = $userRepo->find(1);
+if ($user) {
+    echo $user->getUsername();
+}
+```
+
+### 4. Trouver toutes les entités
+```php
+$users = $userRepo->findAll();
+foreach ($users as $user) {
+    echo $user->getUsername();
+}
+```
+
+### 5. Trouver par critères
+```php
+$admins = $userRepo->findBy(['role' => 'admin']);
+```
+
+### 6. Trouver une seule entité par critères
+```php
+$user = $userRepo->findOneBy(['email' => 'sami@example.com']);
+```
+
+### 7. Créer et persister une entité (si persistance implémentée)
+```php
+$user = new User();
+$user->setUsername('newuser');
+$user->setEmail('newuser@example.com');
+$em->persist($user);
+$em->flush();
+```
+
+## Structure recommandée
+- Les entités sont dans `app/Model/Entity/`
+- Les repositories sont dans `app/Model/Repository/`
+- L'EntityManager et l'ORM sont dans `app/Core/ORM/`
+
+## Bonnes pratiques
+- Utilisez toujours les repositories pour accéder aux entités.
+- Centralisez la logique métier dans des services.
+- Ajoutez des tests unitaires pour chaque méthode du repository.
+
 ---
 
 **Note** : Assurez-vous que tous les ports mentionnés sont libres sur votre machine avant de lancer le projet.
