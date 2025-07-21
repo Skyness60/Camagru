@@ -6,6 +6,27 @@ use ReflectionClass;
 
 class EntityPersister
 {
+    /**
+     * Basic validation: checks for empty string fields (email, firstName, lastName, username, password)
+     * Returns array of error messages for invalid fields
+     */
+    public function validate(object $entity): array
+    {
+        $errors = [];
+        $reflection = new ReflectionClass($entity);
+        $fieldsToCheck = ['email', 'firstName', 'lastName', 'username', 'password'];
+        foreach ($fieldsToCheck as $field) {
+            if ($reflection->hasProperty($field)) {
+                $prop = $reflection->getProperty($field);
+                $prop->setAccessible(true);
+                $value = $prop->getValue($entity);
+                if (!is_string($value) || trim($value) === '') {
+                    $errors[] = "$field must not be empty";
+                }
+            }
+        }
+        return $errors;
+    }
     private PDO $connection;
     private string $entityClass;
     private string $tableName;
@@ -142,5 +163,43 @@ class EntityPersister
         }
 
         return $attributes[0]->newInstance()->name;
+    }
+
+    public function loadAllPaginated(array $criteria, int $limit, int $offset): array
+    {
+        $sql = "SELECT * FROM `{$this->tableName}`";
+        $params = [];
+        $where = '';
+        if (!empty($criteria)) {
+            $conditions = [];
+            foreach ($criteria as $field => $value) {
+                $conditions[] = "`$field` = :$field";
+                $params[$field] = $value;
+            }
+            $where = " WHERE " . implode(' AND ', $conditions);
+        }
+        // Get total count
+        $countSql = "SELECT COUNT(*) FROM `{$this->tableName}`" . $where;
+        $countStmt = $this->connection->prepare($countSql);
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue(":$k", $v);
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
+        // Get paginated results
+        $sql .= $where . " LIMIT :limit OFFSET :offset";
+        $stmt = $this->connection->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue(":$k", $v);
+        }
+        $stmt->bindValue(":limit", $limit, PDO::PARAM_INT);
+        $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return [
+            'total' => $total,
+            'results' => $results
+        ];
     }
 }

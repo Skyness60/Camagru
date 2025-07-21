@@ -84,4 +84,48 @@ class User
     {
         return $this->updatedAt;
     }
+
+    public function setFirstName(string $firstName): void
+    {
+        $this->firstName = $firstName;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function setLastName(string $lastName): void
+    {
+        $this->lastName = $lastName;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function setEmail(string $email): void
+    {
+        $this->email = $email;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function setUsername(string $username): void
+    {
+        $this->username = $username;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function setPassword(string $password): void
+    {
+        $this->password = password_hash($password, PASSWORD_BCRYPT);
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function setRole(UserRole $role): void
+    {
+        $this->role = $role;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getIdOrFail(): int
+    {
+        if ($this->id === null) {
+            throw new \RuntimeException('User ID is not set');
+        }
+        return $this->id;
+    }
 }
