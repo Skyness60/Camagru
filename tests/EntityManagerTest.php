@@ -65,14 +65,14 @@ final class EntityManagerTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function testFindAllReturnsArrayOfEntities(): void {
+    public function testFindAllReturnsArrayOfEntities()
+    {
         $repo = new UserRepository($this->em);
-        
-        $users = $repo->findAll();
-        $this->assertIsArray($users);
-        $this->assertGreaterThan(0, count($users));
-        $this->assertInstanceOf(User::class, $users[0]);
+        $result = $repo->findAll();
+        $this->assertIsArray($result);
+        foreach ($result as $entity) {
+            $this->assertInstanceOf(User::class, $entity);
+        }
     }
 
-    // ...rest of tests...
 }

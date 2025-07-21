@@ -26,22 +26,27 @@ class EntityManager
         return $data ? $this->hydrator->hydrate($data, $entityClass) : null;
     }
 
-    public function findAll(string $entityClass): array
+    private function fetchEntities(string $entityClass, ?array $criteria = null): array
     {
         $persister = $this->getEntityPersister($entityClass);
-        $dataArray = $persister->loadAll();
-        
+        $dataArray = $persister->loadAll($criteria ?? []);
         return $this->hydrator->hydrateAll($dataArray, $entityClass);
+    }
+
+    public function findAll(string $entityClass): array
+    {
+        return $this->fetchEntities($entityClass);
     }
 
     public function findBy(string $entityClass, array $criteria): array
     {
-        $persister = $this->getEntityPersister($entityClass);
-        $dataArray = $persister->loadAll($criteria);
-        
-        return $this->hydrator->hydrateAll($dataArray, $entityClass);
+        return $this->fetchEntities($entityClass, $criteria);
     }
 
+    public function getHydrator(): EntityHydrator
+    {
+        return $this->hydrator;
+    }
     public function findOneBy(string $entityClass, array $criteria): ?object
     {
         $persister = $this->getEntityPersister($entityClass);

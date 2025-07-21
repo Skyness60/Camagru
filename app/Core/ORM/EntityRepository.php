@@ -3,14 +3,10 @@ namespace App\Core\ORM;
 
 class EntityRepository
 {
-    protected EntityManager $em;
-    protected string $entityClass;
-
-    public function __construct(EntityManager $em, string $entityClass)
-    {
-        $this->em = $em;
-        $this->entityClass = $entityClass;
-    }
+    public function __construct(
+        private readonly EntityManager $em,
+        private readonly string $entityClass
+    ) {}
 
     public function find(int $id): ?object
     {
@@ -19,16 +15,18 @@ class EntityRepository
 
     public function findAll(): array
     {
-        return $this->em->findAll($this->entityClass);
+        return $this->findBy([]);
     }
 
     public function findBy(array $criteria): array
     {
-        return $this->em->findBy($this->entityClass, $criteria);
+        $dataArray = $this->em->getEntityPersister($this->entityClass)->loadAll($criteria);
+        return $this->em->getHydrator()->hydrateAll($dataArray, $this->entityClass);
     }
 
     public function findOneBy(array $criteria): ?object
     {
-        return $this->em->findOneBy($this->entityClass, $criteria);
+        $data = $this->em->getEntityPersister($this->entityClass)->loadOneBy($criteria);
+        return $data ? $this->em->getHydrator()->hydrate($data, $this->entityClass) : null;
     }
 }
