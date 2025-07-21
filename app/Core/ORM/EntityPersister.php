@@ -6,49 +6,29 @@ use ReflectionClass;
 
 class EntityPersister
 {
-    /**
-     * Basic validation: checks for empty string fields (email, firstName, lastName, username, password)
-     * Returns array of error messages for invalid fields
-     */
-    public function validate(object $entity): array
-    {
-        $errors = [];
-        $reflection = new ReflectionClass($entity);
-        $fieldsToCheck = ['email', 'firstName', 'lastName', 'username', 'password'];
-        foreach ($fieldsToCheck as $field) {
-            if ($reflection->hasProperty($field)) {
-                $prop = $reflection->getProperty($field);
-                $prop->setAccessible(true);
-                $value = $prop->getValue($entity);
-                if (!is_string($value) || trim($value) === '') {
-                    $errors[] = "$field must not be empty";
-                }
-            }
-        }
-        return $errors;
-    }
-    private PDO $connection;
-    private string $entityClass;
+    private EntityManager $em;
+    private EntityMetadata $metadata;
     private string $tableName;
+    private string $entityClass;
 
-    public function __construct(PDO $connection, string $entityClass)
+    public function __construct(EntityManager $em, string $entityClass)
     {
-        $this->connection = $connection;
+        $this->em = $em;
         $this->entityClass = $entityClass;
+        $this->metadata = new EntityMetadata($entityClass);
         $this->tableName = $this->resolveTableName();
     }
 
     public function load(int $id): ?array
     {
-        $stmt = $this->connection->prepare("SELECT * FROM `{$this->tableName}` WHERE id = :id");
+        $stmt = $this->em->getConnection()->prepare("SELECT * FROM `{$this->metadata->getTableName()}` WHERE id = :id");
         $stmt->execute(['id' => $id]);
-        
-        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
     public function loadAll(array $criteria = []): array
     {
-        $sql = "SELECT * FROM `{$this->tableName}`";
+        $sql = "SELECT * FROM `{$this->metadata->getTableName()}`";
         $params = [];
 
         if (!empty($criteria)) {
@@ -59,11 +39,9 @@ class EntityPersister
             }
             $sql .= " WHERE " . implode(' AND ', $conditions);
         }
-
-        $stmt = $this->connection->prepare($sql);
+        $stmt = $this->em->getConnection()->prepare($sql);
         $stmt->execute($params);
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function loadOneBy(array $criteria): ?array
@@ -76,47 +54,49 @@ class EntityPersister
     {
         $reflection = new ReflectionClass($entity);
         $data = $this->extractEntityData($entity, $reflection);
-        
-        if ($data['id'] === null) {
+
+        // Remove id if present and null, so it's auto-incremented
+        if (array_key_exists('id', $data) && $data['id'] === null) {
             unset($data['id']);
         }
-        
+
         $columns = array_keys($data);
         $placeholders = array_map(fn($col) => ":$col", $columns);
-        
+
         $sql = sprintf(
             "INSERT INTO `%s` (%s) VALUES (%s)",
             $this->tableName,
             implode(', ', array_map(fn($col) => "`$col`", $columns)),
             implode(', ', $placeholders)
         );
-        
-        $stmt = $this->connection->prepare($sql);
+
+        $stmt = $this->em->getConnection()->prepare($sql);
         $stmt->execute($data);
-        
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($entity, (int)$this->connection->lastInsertId());
+
+        // Set the inserted id back to the entity
+        if ($reflection->hasProperty('id')) {
+            $idProperty = $reflection->getProperty('id');
+            $idProperty->setAccessible(true);
+            $idProperty->setValue($entity, (int)$this->em->getConnection()->lastInsertId());
+        }
     }
 
     public function update(object $entity): void
     {
         $reflection = new ReflectionClass($entity);
         $data = $this->extractEntityData($entity, $reflection);
-        
-        $id = $data['id'];
-        unset($data['id']);
-        
-        $setClause = implode(', ', array_map(fn($col) => "`$col` = :$col", array_keys($data)));
-        
+
+        // Remove id from set clause
+        $columns = array_filter(array_keys($data), fn($col) => $col !== 'id');
+        $setClause = implode(', ', array_map(fn($col) => "`$col` = :$col", $columns));
+
         $sql = sprintf(
             "UPDATE `%s` SET %s WHERE id = :id",
             $this->tableName,
             $setClause
         );
-        
-        $data['id'] = $id;
-        $stmt = $this->connection->prepare($sql);
+
+        $stmt = $this->em->getConnection()->prepare($sql);
         $stmt->execute($data);
     }
 
@@ -126,30 +106,26 @@ class EntityPersister
         $idProperty = $reflection->getProperty('id');
         $idProperty->setAccessible(true);
         $id = $idProperty->getValue($entity);
-        
         $sql = "DELETE FROM `{$this->tableName}` WHERE id = :id";
-        $stmt = $this->connection->prepare($sql);
+        $stmt = $this->em->getConnection()->prepare($sql);
         $stmt->execute(['id' => $id]);
     }
 
     private function extractEntityData(object $entity, ReflectionClass $reflection): array
     {
         $data = [];
-        
         foreach ($reflection->getProperties() as $property) {
             $property->setAccessible(true);
             $value = $property->getValue($entity);
-            
+
             // Handle different types
             if ($value instanceof \DateTimeImmutable) {
                 $value = $value->format('Y-m-d H:i:s');
             } elseif ($value instanceof \BackedEnum) {
                 $value = $value->value;
             }
-            
             $data[$property->getName()] = $value;
         }
-        
         return $data;
     }
 
@@ -157,11 +133,9 @@ class EntityPersister
     {
         $reflection = new ReflectionClass($this->entityClass);
         $attributes = $reflection->getAttributes(Table::class);
-
         if (count($attributes) === 0) {
             throw new \RuntimeException("Missing #[Table] attribute on class {$this->entityClass}");
         }
-
         return $attributes[0]->newInstance()->name;
     }
 
@@ -180,7 +154,7 @@ class EntityPersister
         }
         // Get total count
         $countSql = "SELECT COUNT(*) FROM `{$this->tableName}`" . $where;
-        $countStmt = $this->connection->prepare($countSql);
+        $countStmt = $this->em->getConnection()->prepare($countSql);
         foreach ($params as $k => $v) {
             $countStmt->bindValue(":$k", $v);
         }
@@ -189,7 +163,7 @@ class EntityPersister
 
         // Get paginated results
         $sql .= $where . " LIMIT :limit OFFSET :offset";
-        $stmt = $this->connection->prepare($sql);
+        $stmt = $this->em->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
             $stmt->bindValue(":$k", $v);
         }
@@ -201,5 +175,22 @@ class EntityPersister
             'total' => $total,
             'results' => $results
         ];
+    }
+
+    public function validate(object $entity): array
+    {
+        $errors = [];
+        $reflection = new ReflectionClass($entity);
+        foreach ($reflection->getProperties() as $prop) {
+            $prop->setAccessible(true);
+            $type = $prop->getType();
+            if ($type instanceof \ReflectionNamedType && $type->getName() === 'string') {
+                $value = $prop->getValue($entity);
+                if (!is_string($value) || trim($value) === '') {
+                    $errors[] = "{$prop->getName()} must not be empty";
+                }
+            }
+        }
+        return $errors;
     }
 }

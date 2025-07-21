@@ -90,7 +90,7 @@ class EntityManager
     public function getEntityPersister(string $entityClass): EntityPersister
     {
         if (!isset($this->persisters[$entityClass])) {
-            $this->persisters[$entityClass] = new EntityPersister($this->connection, $entityClass);
+            $this->persisters[$entityClass] = new EntityPersister($this, $entityClass);
         }
         
         return $this->persisters[$entityClass];
