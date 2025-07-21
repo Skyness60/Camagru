@@ -16,13 +16,13 @@ class EntityHydrator
             foreach ($constructor->getParameters() as $param) {
                 $name = $param->getName();
                 $value = $data[$name] ?? null;
-                
                 $type = $param->getType();
-                if ($type && !$type->isBuiltin() && enum_exists($type->getName())) {
-                    $enumClass = $type->getName();
-                    $value = $enumClass::from($value);
+                if ($type instanceof \ReflectionNamedType) {
+                    $typeName = $type->getName();
+                    if (!$type->isBuiltin() && enum_exists($typeName)) {
+                        $value = $typeName::from($value);
+                    }
                 }
-                
                 $args[] = $value;
             }
         }
@@ -33,16 +33,15 @@ class EntityHydrator
             if ($reflection->hasProperty($key)) {
                 $prop = $reflection->getProperty($key);
                 $type = $prop->getType();
-                
-                if ($type && !$type->isBuiltin() && enum_exists($type->getName())) {
-                    $enumClass = $type->getName();
-                    $value = $enumClass::from($value);
+                if ($type instanceof \ReflectionNamedType) {
+                    $typeName = $type->getName();
+                    if (!$type->isBuiltin() && enum_exists($typeName)) {
+                        $value = $typeName::from($value);
+                    }
+                    if (($typeName === 'DateTimeImmutable' || $typeName === '\DateTimeImmutable') && is_string($value)) {
+                        $value = new \DateTimeImmutable($value);
+                    }
                 }
-                
-                if ($type && ($type->getName() === 'DateTimeImmutable' || $type->getName() === '\DateTimeImmutable') && is_string($value)) {
-                    $value = new \DateTimeImmutable($value);
-                }
-                
                 $prop->setAccessible(true);
                 $prop->setValue($instance, $value);
             }
