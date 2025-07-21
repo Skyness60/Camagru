@@ -12,7 +12,6 @@ class UserRepository extends BaseRepository
         parent::__construct($em, User::class);
     }
 
-    // Méthodes spécifiques aux utilisateurs
     public function findByEmail(string $email): ?User
     {
         return $this->findOneBy(['email' => $email]);

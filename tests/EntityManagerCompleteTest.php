@@ -6,39 +6,44 @@ use App\Core\ORM\EntityManager;
 use App\Model\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use App\Model\Entity\UserRole;
+use App\Config\EnvLoader;
 use PDO;
 
 #[CoversClass(EntityManager::class)]
 final class EntityManagerCompleteTest extends TestCase
 {
     private EntityManager $em;
+    private PDO $pdo;
 
     protected function setUp(): void
     {
-        // Utiliser SQLite en mémoire pour les tests
-        $pdo = new PDO('sqlite::memory:');
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        
-        // Créer la table avec syntaxe SQLite
-        $this->createSQLiteTable($pdo);
-        
-        $this->em = new EntityManager($pdo);
+        EnvLoader::load(__DIR__ . '/../.env');
+        $dsn = sprintf(
+            'mysql:host=%s;dbname=%s;charset=utf8mb4',
+            $_ENV['MYSQL_HOST'],
+            $_ENV['MYSQL_DATABASE']
+        );
+        $this->pdo = new PDO($dsn, $_ENV['MYSQL_USER'], $_ENV['MYSQL_PASSWORD']);
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->createMySQLTable($this->pdo);
+        $this->em = new EntityManager($this->pdo);
     }
 
-    private function createSQLiteTable(PDO $pdo): void
+    private function createMySQLTable(PDO $pdo): void
     {
+        $pdo->exec('DROP TABLE IF EXISTS users');
         $sql = "
             CREATE TABLE users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT NOT NULL,
-                firstName TEXT NOT NULL,
-                lastName TEXT NOT NULL,
-                username TEXT NOT NULL,
-                password TEXT NOT NULL,
-                role TEXT NOT NULL,
-                createdAt TEXT NOT NULL,
-                updatedAt TEXT
-            )
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                firstName VARCHAR(255) NOT NULL,
+                lastName VARCHAR(255) NOT NULL,
+                username VARCHAR(255) NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                role VARCHAR(50) NOT NULL,
+                createdAt DATETIME NOT NULL,
+                updatedAt DATETIME NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ";
         $pdo->exec($sql);
     }

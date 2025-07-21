@@ -14,7 +14,7 @@ class EntityManager
     public function __construct(PDO $connection)
     {
         $this->connection = $connection;
-        $this->hydrator = new EntityHydrator();
+        $this->hydrator = new EntityHydrator($this);
         $this->unitOfWork = new UnitOfWork($this);
     }
 
@@ -30,7 +30,29 @@ class EntityManager
     {
         $persister = $this->getEntityPersister($entityClass);
         $dataArray = $persister->loadAll($criteria ?? []);
+        $this->hydrator->setEntityManager($this);
         return $this->hydrator->hydrateAll($dataArray, $entityClass);
+    }
+
+    public function paginate(string $entityClass, array $criteria = [], int $limit = 10, int $offset = 0): array
+    {
+        $persister = $this->getEntityPersister($entityClass);
+        $pageData = $persister->loadAllPaginated($criteria, $limit, $offset);
+        $this->hydrator->setEntityManager($this);
+        $hydrated = $this->hydrator->hydrateAll($pageData['results'], $entityClass);
+        return [
+            'total' => $pageData['total'],
+            'results' => $hydrated
+        ];
+    }
+    /**
+     * Valide une entité via le persister
+     * Retourne un tableau d'erreurs
+     */
+    public function validate(object $entity): array
+    {
+        $persister = $this->getEntityPersister(get_class($entity));
+        return method_exists($persister, 'validate') ? $persister->validate($entity) : [];
     }
 
     public function findAll(string $entityClass): array

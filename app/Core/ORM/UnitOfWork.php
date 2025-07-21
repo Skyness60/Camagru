@@ -18,10 +18,27 @@ class UnitOfWork
     public function persist(object $entity): void
     {
         $oid = spl_object_id($entity);
-        
-        if (!isset($this->entityStates[$oid])) {
-            $this->entityStates[$oid] = 'NEW';
-            $this->scheduledForInsert[$oid] = $entity;
+        $persister = $this->em->getEntityPersister(get_class($entity));
+        if (method_exists($persister, 'validate')) {
+            $errors = $persister->validate($entity);
+            if (!empty($errors)) {
+                throw new \InvalidArgumentException('Validation failed: ' . implode(', ', $errors));
+            }
+        }
+        $reflection = new \ReflectionClass($entity);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $id = $idProperty->getValue($entity);
+        if ($id === null) {
+            // Nouvelle entité
+            if (!isset($this->entityStates[$oid])) {
+                $this->entityStates[$oid] = 'NEW';
+                $this->scheduledForInsert[$oid] = $entity;
+            }
+        } else {
+            // Entité existante, planifier pour update
+            $this->entityStates[$oid] = 'MANAGED';
+            $this->scheduledForUpdate[$oid] = $entity;
         }
     }
 
@@ -60,7 +77,14 @@ class UnitOfWork
 
     private function executeInsert(object $entity): void
     {
+        // Validation via persister
         $persister = $this->em->getEntityPersister(get_class($entity));
+        if (method_exists($persister, 'validate')) {
+            $errors = $persister->validate($entity);
+            if (!empty($errors)) {
+                throw new \InvalidArgumentException('Validation failed: ' . implode(', ', $errors));
+            }
+        }
         $persister->insert($entity);
     }
 

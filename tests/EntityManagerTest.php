@@ -27,7 +27,6 @@ final class EntityManagerTest extends TestCase
         $schema = new SchemaGenerator($connection);
         $schema->generateTable(User::class);
         
-        // ✅ AJOUTER DES DONNÉES DE TEST
         $this->insertTestData($connection);
         
         $this->em = new EntityManager($connection);
@@ -35,7 +34,6 @@ final class EntityManagerTest extends TestCase
 
     private function insertTestData(\PDO $connection): void
     {
-        // Insérer un utilisateur de test
         $sql = "INSERT INTO users (email, firstName, lastName, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $connection->prepare($sql);
         $stmt->execute([
