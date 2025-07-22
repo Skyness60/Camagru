@@ -46,11 +46,15 @@
         }
         /* Flicker animation for lens emoji */
         .flicker {
-            animation: flicker 1.2s infinite alternate;
+            animation: flicker 1.2s infinite alternate, lensRotate 8s infinite linear;
         }
         @keyframes flicker {
             0% { filter: brightness(1.1) drop-shadow(0 0 2px #fff); }
             100% { filter: brightness(0.8) drop-shadow(0 0 8px #e7d3b1); }
+        }
+        @keyframes lensRotate {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
         }
 
         /* Floating polaroid photos */
@@ -76,9 +80,6 @@
             cursor: grabbing;
             animation: none !important;
         }
-        .floating-polaroid.falling {
-            transition: top 1.2s cubic-bezier(.3,1.5,.5,1), left 0.8s;
-        }
         .floating-polaroid img {
             width: 100%;
             height: 80px;
@@ -102,15 +103,6 @@
             z-index: 100;
             pointer-events: none;
             transition: opacity 0.7s;
-        }
-
-        /* Lens emoji rotation */
-        .flicker {
-            animation: flicker 1.2s infinite alternate, lensRotate 8s infinite linear;
-        }
-        @keyframes lensRotate {
-            0% { transform: rotate(0deg);}
-            100% { transform: rotate(360deg);}
         }
 
         /* Vignette fade-in */
@@ -146,9 +138,8 @@
     <div class="floating-polaroid" style="top:40%; left:85%; animation-delay:6s;" data-id="3">
         <img src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=200&q=80" alt="Polaroid 3">
     </div>
-    <!-- Polaroid 4: bottom left, no image, placeholder text -->
     <div class="floating-polaroid" style="top:85%; left:2%; animation-delay:9s; display:flex; align-items:center; justify-content:center;" data-id="4">
-        <span style="font-size:1.1em; color:#b8a07a; font-family:monospace; text-align:center; padding:8px;">Polaroid 4<br><small style="color:#e7d3b1;">(vide)</small></span>
+        <img src="https://demo-source.imgix.net/puppy.jpg" alt="Polaroid 4">
     </div>
     <div class="relative w-full max-w-md z-10">
         <div class="film-border"></div>
@@ -199,25 +190,75 @@
             }, 400);
         });
 
-        // Drag for polaroids (drag container even if clicking child)
+        // Drag, realistic throw, collision with login and between polaroids (no overlap on drag)
         (function() {
             let draggingPolaroid = null;
             let startX = 0, startY = 0, origX = 0, origY = 0, mouseX = 0, mouseY = 0;
+            let velocityX = 0, velocityY = 0;
+            let dragHistory = [];
+            const minX = 0, maxX = 92;
+            const minY = 0, maxY = 88;
+            const polaroids = Array.from(document.querySelectorAll('.floating-polaroid'));
+            const polaroidStates = new Map();
+            const polaroidAnimFrames = new Map();
+            const restitution = 0.8;
+            const friction = 0.995;
+            const minSpeed = 0.03;
+            const POLAROID_W = 6.5, POLAROID_H = 9.5;
 
-            document.querySelectorAll('.floating-polaroid').forEach(function(polaroid) {
+            function getLoginRect() {
+                const login = document.querySelector('.relative.w-full.max-w-md.z-10');
+                const rect = login.getBoundingClientRect();
+                return {
+                    left: rect.left * 100 / window.innerWidth,
+                    top: rect.top * 100 / window.innerHeight,
+                    right: rect.right * 100 / window.innerWidth,
+                    bottom: rect.bottom * 100 / window.innerHeight,
+                    width: rect.width * 100 / window.innerWidth,
+                    height: rect.height * 100 / window.innerHeight
+                };
+            }
+
+            function getPolaroidRect(state) {
+                return {
+                    left: state.x,
+                    top: state.y,
+                    right: state.x + POLAROID_W,
+                    bottom: state.y + POLAROID_H,
+                    width: POLAROID_W,
+                    height: POLAROID_H
+                };
+            }
+
+            function isColliding(a, b) {
+                return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+            }
+
+            // Set initial state for each polaroid
+            polaroids.forEach((p) => {
+                let x = parseFloat(p.style.left) || 10;
+                let y = parseFloat(p.style.top) || 20;
+                polaroidStates.set(p, { x, y, vx: 0, vy: 0 });
+                polaroidAnimFrames.set(p, null);
+            });
+
+            polaroids.forEach(function(polaroid) {
                 polaroid.addEventListener('mousedown', function(e) {
-                    // Always drag the polaroid container, even if clicking a child
+                    let animFrame = polaroidAnimFrames.get(polaroid);
+                    if (animFrame) cancelAnimationFrame(animFrame);
+                    polaroidAnimFrames.set(polaroid, null);
+
                     draggingPolaroid = polaroid;
-                    draggingPolaroid.classList.add('dragging');
+                    polaroid.classList.add('dragging');
                     startX = e.clientX;
                     startY = e.clientY;
-                    origX = parseFloat(draggingPolaroid.style.left);
-                    origY = parseFloat(draggingPolaroid.style.top);
+                    origX = parseFloat(polaroid.style.left);
+                    origY = parseFloat(polaroid.style.top);
                     mouseX = origX;
                     mouseY = origY;
-                    draggingPolaroid.style.animation = 'none';
+                    dragHistory = [{x: startX, y: startY, t: performance.now()}];
+                    polaroid.style.animation = 'none';
                     document.body.style.userSelect = 'none';
-                    // Prevent image dragging ghost
                     e.preventDefault();
                 });
             });
@@ -226,13 +267,59 @@
                 if (!draggingPolaroid) return;
                 let dx = e.clientX - startX;
                 let dy = e.clientY - startY;
-                mouseX = origX + dx * 100 / window.innerWidth;
-                mouseY = origY + dy * 100 / window.innerHeight;
-                // Clamp within viewport
-                mouseX = Math.max(0, Math.min(92, mouseX));
-                mouseY = Math.max(0, Math.min(88, mouseY));
+                let newX = origX + dx * 100 / window.innerWidth;
+                let newY = origY + dy * 100 / window.innerHeight;
+                newX = Math.max(minX, Math.min(maxX, newX));
+                newY = Math.max(minY, Math.min(maxY, newY));
+
+                // Prevent overlap with login box
+                const loginRect = getLoginRect();
+                let tempRect = {
+                    left: newX,
+                    top: newY,
+                    right: newX + 8,
+                    bottom: newY + 12
+                };
+                if (isColliding(tempRect, loginRect)) {
+                    // Snap to closest edge outside login
+                    if (dx > 0 && tempRect.right > loginRect.left && tempRect.left < loginRect.left) newX = loginRect.left - 8;
+                    if (dx < 0 && tempRect.left < loginRect.right && tempRect.right > loginRect.right) newX = loginRect.right;
+                    if (dy > 0 && tempRect.bottom > loginRect.top && tempRect.top < loginRect.top) newY = loginRect.top - 12;
+                    if (dy < 0 && tempRect.top < loginRect.bottom && tempRect.bottom > loginRect.bottom) newY = loginRect.bottom;
+                }
+
+                // Prevent overlap with other polaroids
+                for (let other of polaroids) {
+                    if (other === draggingPolaroid) continue;
+                    let otherState = polaroidStates.get(other);
+                    let otherRect = getPolaroidRect(otherState);
+                    let thisRect = {
+                        left: newX,
+                        top: newY,
+                        right: newX + 8,
+                        bottom: newY + 12
+                    };
+                    if (isColliding(thisRect, otherRect)) {
+                        // Snap away from the other polaroid
+                        if (dx > 0 && thisRect.right > otherRect.left && thisRect.left < otherRect.left) newX = otherRect.left - 8;
+                        if (dx < 0 && thisRect.left < otherRect.right && thisRect.right > otherRect.right) newX = otherRect.right;
+                        if (dy > 0 && thisRect.bottom > otherRect.top && thisRect.top < otherRect.top) newY = otherRect.top - 12;
+                        if (dy < 0 && thisRect.top < otherRect.bottom && thisRect.bottom > otherRect.bottom) newY = otherRect.bottom;
+                    }
+                }
+
+                mouseX = Math.max(minX, Math.min(maxX, newX));
+                mouseY = Math.max(minY, Math.min(maxY, newY));
                 draggingPolaroid.style.left = mouseX + '%';
                 draggingPolaroid.style.top = mouseY + '%';
+
+                // Ajoute à l'historique pour calculer la vélocité sur les 100 derniers ms
+                const now = performance.now();
+                dragHistory.push({x: e.clientX, y: e.clientY, t: now});
+                // Garde seulement les points des 100 derniers ms
+                while (dragHistory.length > 2 && now - dragHistory[0].t > 100) {
+                    dragHistory.shift();
+                }
             });
 
             document.addEventListener('mouseup', function(e) {
@@ -240,7 +327,187 @@
                 draggingPolaroid.classList.remove('dragging');
                 document.body.style.userSelect = '';
                 draggingPolaroid.style.animation = '';
+
+                // Calcul de la vélocité sur les 100 derniers ms du drag
+                let vdx = 0, vdy = 0, vdt = 1;
+                if (dragHistory.length >= 2) {
+                    let first = dragHistory[0];
+                    let last = dragHistory[dragHistory.length - 1];
+                    vdx = last.x - first.x;
+                    vdy = last.y - first.y;
+                    vdt = Math.max(1, last.t - first.t);
+                }
+                velocityX = (vdx * 100 / window.innerWidth) / vdt * 10;
+                velocityY = (vdy * 100 / window.innerHeight) / vdt * 10;
+                velocityX = Math.max(-2, Math.min(2, velocityX));
+                velocityY = Math.max(-2, Math.min(2, velocityY));
+                let state = polaroidStates.get(draggingPolaroid);
+                state.x = mouseX;
+                state.y = mouseY;
+                state.vx = velocityX;
+                state.vy = velocityY;
+                animatePolaroid(draggingPolaroid);
                 draggingPolaroid = null;
+            });
+
+            function axisOfMaxOverlap(r1, r2) {
+                const overlapX = Math.min(r1.right, r2.right) - Math.max(r1.left, r2.left);
+                const overlapY = Math.min(r1.bottom, r2.bottom) - Math.max(r1.top, r2.top);
+                if (overlapX === overlapY) {
+                    return Math.abs(r1.left - r2.left) > Math.abs(r1.top - r2.top) ? 'x' : 'y';
+                }
+                return overlapX < overlapY ? 'x' : 'y';
+            }
+            function sign(x) { return x >= 0 ? 1 : -1; }
+
+            function animatePolaroid(polaroid) {
+                let state = polaroidStates.get(polaroid);
+                function step() {
+                    state.x += state.vx;
+                    state.y += state.vy;
+
+                    state.vx *= friction;
+                    state.vy *= friction;
+
+                    // Collision with viewport borders
+                    let bounced = false;
+                    if (state.x < minX) {
+                        state.x = minX;
+                        state.vx = Math.abs(state.vx) * restitution;
+                        bounced = true;
+                    }
+                    if (state.x > maxX) {
+                        state.x = maxX;
+                        state.vx = -Math.abs(state.vx) * restitution;
+                        bounced = true;
+                    }
+                    if (state.y < minY) {
+                        state.y = minY;
+                        state.vy = Math.abs(state.vy) * restitution;
+                        bounced = true;
+                    }
+                    if (state.y > maxY) {
+                        state.y = maxY;
+                        state.vy = -Math.abs(state.vy) * restitution;
+                        bounced = true;
+                    }
+
+                    // Collision with login box (rebond sur axe principal, gère bien les coins)
+                    const loginRect = getLoginRect();
+                    const pRect = getPolaroidRect(state);
+                    if (isColliding(pRect, loginRect)) {
+                        const overlapX = Math.min(pRect.right, loginRect.right) - Math.max(pRect.left, loginRect.left);
+                        const overlapY = Math.min(pRect.bottom, loginRect.bottom) - Math.max(pRect.top, loginRect.top);
+                        // Si coin, rebond sur les deux axes
+                        if (overlapX > 0 && overlapY > 0 && Math.abs(overlapX - overlapY) < 1.5) {
+                            // Coin : rebond sur x ET y
+                            if (state.x + POLAROID_W / 2 < (loginRect.left + loginRect.right) / 2) {
+                                state.x = loginRect.left - POLAROID_W;
+                                state.vx = -Math.abs(state.vx) * restitution;
+                            } else {
+                                state.x = loginRect.right;
+                                state.vx = Math.abs(state.vx) * restitution;
+                            }
+                            if (state.y + POLAROID_H / 2 < (loginRect.top + loginRect.bottom) / 2) {
+                                state.y = loginRect.top - POLAROID_H;
+                                state.vy = -Math.abs(state.vy) * restitution;
+                            } else {
+                                state.y = loginRect.bottom;
+                                state.vy = Math.abs(state.vy) * restitution;
+                            }
+                        } else {
+                            // Sinon, rebond sur l'axe principal
+                            const axis = axisOfMaxOverlap(pRect, loginRect);
+                            if (axis === 'x') {
+                                if (state.x + POLAROID_W / 2 < (loginRect.left + loginRect.right) / 2) {
+                                    state.x = loginRect.left - POLAROID_W;
+                                    state.vx = -Math.abs(state.vx) * restitution;
+                                } else {
+                                    state.x = loginRect.right;
+                                    state.vx = Math.abs(state.vx) * restitution;
+                                }
+                            } else {
+                                if (state.y + POLAROID_H / 2 < (loginRect.top + loginRect.bottom) / 2) {
+                                    state.y = loginRect.top - POLAROID_H;
+                                    state.vy = -Math.abs(state.vy) * restitution;
+                                } else {
+                                    state.y = loginRect.bottom;
+                                    state.vy = Math.abs(state.vy) * restitution;
+                                }
+                            }
+                        }
+                    }
+
+                    // Collision with other polaroids (rebond sur axe principal dans tous les cas)
+                    polaroids.forEach(function(other) {
+                        if (other === polaroid) return;
+                        let otherState = polaroidStates.get(other);
+                        let r1 = getPolaroidRect(state);
+                        let r2 = getPolaroidRect(otherState);
+                        if (isColliding(r1, r2)) {
+                            const axis = axisOfMaxOverlap(r1, r2);
+                            if (axis === 'x') {
+                                // Échange de vitesse sur x
+                                let tmp = state.vx;
+                                state.vx = otherState.vx * restitution;
+                                otherState.vx = tmp * restitution;
+                                // Séparation douce sur x
+                                let mid = (r1.left + r1.right) / 2;
+                                let omid = (r2.left + r2.right) / 2;
+                                let overlap = (POLAROID_W - Math.abs(mid - omid));
+                                if (overlap > 0) {
+                                    let sep = overlap / 2 * sign(mid - omid);
+                                    state.x += sep;
+                                    otherState.x -= sep;
+                                }
+                            } else if (axis === 'y') {
+                                // Échange de vitesse sur y
+                                let tmp = state.vy;
+                                state.vy = otherState.vy * restitution;
+                                otherState.vy = tmp * restitution;
+                                // Séparation douce sur y
+                                let mid = (r1.top + r1.bottom) / 2;
+                                let omid = (r2.top + r2.bottom) / 2;
+                                let overlap = (POLAROID_H - Math.abs(mid - omid));
+                                if (overlap > 0) {
+                                    let sep = overlap / 2 * sign(mid - omid);
+                                    state.y += sep;
+                                    otherState.y -= sep;
+                                }
+                            }
+                        }
+                    });
+
+                    polaroid.style.left = state.x + '%';
+                    polaroid.style.top = state.y + '%';
+
+                    if (Math.abs(state.vx) < minSpeed && Math.abs(state.vy) < minSpeed) {
+                        state.vx = 0;
+                        state.vy = 0;
+                        polaroidAnimFrames.set(polaroid, null);
+                        return;
+                    }
+
+                    let animFrame = requestAnimationFrame(step);
+                    polaroidAnimFrames.set(polaroid, animFrame);
+                }
+                let prev = polaroidAnimFrames.get(polaroid);
+                if (prev) cancelAnimationFrame(prev);
+                polaroidAnimFrames.set(polaroid, requestAnimationFrame(step));
+            }
+
+            // On page load, start all polaroids with a random direction except polaroid 4
+            polaroids.forEach(function(polaroid) {
+                let state = polaroidStates.get(polaroid);
+                if (polaroid.querySelector('img') === null) {
+                    state.vx = 0;
+                    state.vy = 0;
+                    polaroidAnimFrames.set(polaroid, null);
+                } else {
+                    state.vx = (Math.random() > 0.5 ? 0.5 : -0.5) * (0.5 + Math.random());
+                    state.vy = (Math.random() > 0.5 ? 0.5 : -0.5) * (0.5 + Math.random());
+                    animatePolaroid(polaroid);
+                }
             });
         })();
     </script>
