@@ -7,22 +7,26 @@ use App\Core\ORM\EntityManager;
 use App\Model\Entity\User;
 use App\Model\Entity\UserRole;
 use App\Config\EnvLoader;
+use App\Config\Database;
 
 final class ORMFullLifecycleTest extends TestCase
 {
     private EntityManager $em;
     private PDO $pdo;
 
+    public static function setUpBeforeClass(): void
+    {
+        $envPath = __DIR__ . '/../.env';
+        // Ensure .env file exists for tests
+        if (!file_exists($envPath)) {
+            file_put_contents($envPath, "DB_HOST=localhost\nDB_NAME=test_db\nDB_USER=root\nDB_PASS=\n");
+        }
+        EnvLoader::load($envPath);
+    }
+
     protected function setUp(): void
     {
-        EnvLoader::load(__DIR__ . '/../.env');
-        $dsn = sprintf(
-            'mysql:host=%s;dbname=%s;charset=utf8mb4',
-            $_ENV['MYSQL_HOST'],
-            $_ENV['MYSQL_DATABASE']
-        );
-        $this->pdo = new \PDO($dsn, $_ENV['MYSQL_USER'], $_ENV['MYSQL_PASSWORD']);
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->pdo = Database::getPdo();
         $this->createMySQLTable($this->pdo);
         $this->em = new EntityManager($this->pdo);
     }
@@ -130,3 +134,4 @@ final class ORMFullLifecycleTest extends TestCase
         $this->assertNull($notFound);
     }
 }
+

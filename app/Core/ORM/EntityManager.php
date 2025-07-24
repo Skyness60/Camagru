@@ -30,7 +30,6 @@ class EntityManager
     {
         $persister = $this->getEntityPersister($entityClass);
         $dataArray = $persister->loadAll($criteria ?? []);
-        $this->hydrator->setEntityManager($this);
         return $this->hydrator->hydrateAll($dataArray, $entityClass);
     }
 
@@ -38,7 +37,6 @@ class EntityManager
     {
         $persister = $this->getEntityPersister($entityClass);
         $pageData = $persister->loadAllPaginated($criteria, $limit, $offset);
-        $this->hydrator->setEntityManager($this);
         $hydrated = $this->hydrator->hydrateAll($pageData['results'], $entityClass);
         return [
             'total' => $pageData['total'],
