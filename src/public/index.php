@@ -1,5 +1,10 @@
 <?php
+
+use App\Controller\IndexController;
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../app/Config/EnvLoader.php';
+
+\App\Config\EnvLoader::load(__DIR__ . '/../.env');
 
 
 use App\Core\Router;
@@ -7,8 +12,19 @@ use App\Controller\RegisterController;
 
 $router = new Router();
 
+
+use App\Controller\LoginController;
+
+$router->get('/', function () {
+    (new IndexController())->show();
+});
+
 $router->get('/login', function () {
-    require __DIR__ . '/../app/View/login.php';
+    (new LoginController())->showForm();
+});
+
+$router->post('/login', function () {
+    (new LoginController())->handleLogin();
 });
 
 $router->get('/register', function () {
