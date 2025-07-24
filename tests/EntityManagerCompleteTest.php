@@ -7,7 +7,7 @@ use App\Model\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use App\Model\Entity\UserRole;
 use App\Config\EnvLoader;
-use PDO;
+use App\Config\Database;
 
 #[CoversClass(EntityManager::class)]
 final class EntityManagerCompleteTest extends TestCase
@@ -15,16 +15,14 @@ final class EntityManagerCompleteTest extends TestCase
     private EntityManager $em;
     private PDO $pdo;
 
-    protected function setUp(): void
+    public static function setUpBeforeClass(): void
     {
         EnvLoader::load(__DIR__ . '/../.env');
-        $dsn = sprintf(
-            'mysql:host=%s;dbname=%s;charset=utf8mb4',
-            $_ENV['MYSQL_HOST'],
-            $_ENV['MYSQL_DATABASE']
-        );
-        $this->pdo = new PDO($dsn, $_ENV['MYSQL_USER'], $_ENV['MYSQL_PASSWORD']);
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    }
+
+    protected function setUp(): void
+    {
+        $this->pdo = Database::getPdo();
         $this->createMySQLTable($this->pdo);
         $this->em = new EntityManager($this->pdo);
     }

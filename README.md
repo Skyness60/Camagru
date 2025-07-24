@@ -211,7 +211,9 @@ Camagru/
 
 ### 1. Initialisation de l'EntityManager
 ```php
-$pdo = new PDO($dsn, $user, $password);
+use App\Config\Database;
+
+$pdo = Database::getPdo();
 $em = new EntityManager($pdo);
 ```
 

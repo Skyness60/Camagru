@@ -5,7 +5,7 @@ namespace App\Config;
 
 final class EnvLoader
 {
-    public static function load(string $path = __DIR__ . '/../.env'): void
+    public static function load(string $path = __DIR__ . '/../../.env'): void
     {
         if (!file_exists($path)) {
             throw new \RuntimeException(".env file not found at $path");

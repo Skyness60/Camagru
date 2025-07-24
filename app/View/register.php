@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Register - Camagru Retro</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='5' width='18' height='14' rx='3' fill='%23fff1b6' stroke='%23704214' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3' fill='%23b5d8eb' stroke='%23704214' stroke-width='2'/%3E%3Crect x='16' y='7' width='2' height='2' rx='1' fill='%23704214'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/camagru-retro.css">
 </head>

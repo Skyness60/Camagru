@@ -7,22 +7,21 @@ use App\Core\ORM\EntityManager;
 use App\Model\Entity\User;
 use App\Model\Entity\UserRole;
 use App\Config\EnvLoader;
+use App\Config\Database;
 
 final class EntityManagerAdvancedTest extends TestCase
 {
     private EntityManager $em;
     private PDO $pdo;
 
-    protected function setUp(): void
+    public static function setUpBeforeClass(): void
     {
         EnvLoader::load(__DIR__ . '/../.env');
-        $dsn = sprintf(
-            'mysql:host=%s;dbname=%s;charset=utf8mb4',
-            $_ENV['MYSQL_HOST'],
-            $_ENV['MYSQL_DATABASE']
-        );
-        $this->pdo = new \PDO($dsn, $_ENV['MYSQL_USER'], $_ENV['MYSQL_PASSWORD']);
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+    }
+
+    protected function setUp(): void
+    {
+        $this->pdo = Database::getPdo();
         $this->createMySQLTable($this->pdo);
         $this->em = new EntityManager($this->pdo);
     }
@@ -108,3 +107,4 @@ final class EntityManagerAdvancedTest extends TestCase
     // Pour la gestion des relations, il faudrait ajouter une entité liée (ex: Post, Comment, etc.)
     // et tester la récupération via hydrate. À ajouter si tu as des entités liées.
 }
+
