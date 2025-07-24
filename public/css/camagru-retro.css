@@ -1,0 +1,111 @@
+/* Animation grain */
+.grain-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: url('https://www.transparenttextures.com/patterns/grain.png');
+    opacity: 0.22;
+    animation: grainMove 2s infinite linear alternate;
+}
+@keyframes grainMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 40px 60px; }
+}
+/* Sépia overlay */
+.sepia-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(120deg, #f5ecd7 60%, #e7d3b1 100%);
+    mix-blend-mode: multiply;
+    opacity: 0.55;
+}
+/* Pellicule border */
+.film-border {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 110%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    border: 12px dashed #b8a07a;
+    border-radius: 32px;
+    opacity: 0.18;
+    box-shadow: 0 0 32px #b8a07a inset;
+}
+/* Flicker animation for lens emoji */
+.flicker {
+    animation: flicker 1.2s infinite alternate, lensRotate 8s infinite linear;
+}
+@keyframes flicker {
+    0% { filter: brightness(1.1) drop-shadow(0 0 2px #fff); }
+    100% { filter: brightness(0.8) drop-shadow(0 0 8px #e7d3b1); }
+}
+@keyframes lensRotate {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg);}
+}
+/* Floating polaroid photos */
+.floating-polaroid {
+    position: fixed;
+    z-index: 10;
+    width: 90px;
+    height: 110px;
+    opacity: 0.85;
+    border: 6px solid #f5ecd7;
+    border-bottom: 18px solid #e7d3b1;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px #b8a07a55;
+    background: #fff;
+    animation: floatPolaroid 12s infinite linear;
+    cursor: grab;
+    transition: box-shadow 0.2s;
+}
+.floating-polaroid.dragging {
+    z-index: 101;
+    box-shadow: 0 12px 32px #b8a07a99, 0 2px 8px #e7d3b1;
+    opacity: 1;
+    cursor: grabbing;
+    animation: none !important;
+}
+.floating-polaroid img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px 8px 0 0;
+}
+@keyframes floatPolaroid {
+    0% { transform: translateY(0) rotate(-8deg); opacity: 0.7;}
+    10% { opacity: 1;}
+    50% { transform: translateY(-40px) rotate(8deg);}
+    90% { opacity: 1;}
+    100% { transform: translateY(0) rotate(-8deg); opacity: 0.7;}
+}
+/* Camera flash overlay */
+.flash-overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, #fff 60%, transparent 100%);
+    opacity: 0;
+    z-index: 100;
+    pointer-events: none;
+    transition: opacity 0.7s;
+}
+/* Vignette fade-in */
+.vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    background: radial-gradient(ellipse at center, transparent 60%, #2d2d2d33 100%);
+    opacity: 0;
+    animation: vignetteFade 2.5s forwards;
+}
+@keyframes vignetteFade {
+    0% { opacity: 0;}
+    100% { opacity: 1;}
+}
