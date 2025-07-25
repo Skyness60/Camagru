@@ -11,33 +11,36 @@ use App\Core\Router;
 use App\Controller\RegisterController;
 
 $router = new Router();
+// Initialize the container
+$container = new \App\Config\Container(); // Replace with actual container initialization if needed
 
 
 use App\Controller\LoginController;
+use App\Controller\ErrorController;
 
-$router->get('/', function () {
-    (new IndexController())->show();
+$router->get('/', function () use ($container) {
+    (new IndexController($container))->show();
 });
 
-$router->get('/login', function () {
-    (new LoginController())->showForm();
+$router->get('/login', function () use ($container) {
+    (new LoginController($container))->showForm();
 });
 
-$router->post('/login', function () {
-    (new LoginController())->handleLogin();
+$router->post('/login', function () use ($container) {
+    (new LoginController($container))->handleLogin();
 });
 
-$router->get('/register', function () {
-    (new RegisterController())->showForm();
+$router->get('/register', function () use ($container) {
+    (new RegisterController($container))->showForm();
 });
 
-$router->post('/register', function () {
-    (new RegisterController())->handleRegister();
+$router->post('/register', function () use ($container) {
+    (new RegisterController($container))->handleRegister();
 });
 
-// Route 404 personnalisée
-$router->setNotFoundHandler(function () {
-    echo '404 - Page not found';
+// Route 404
+$router->setNotFoundHandler(function () use ($container) {
+    (new ErrorController($container))->notFound();
 });
 
 // Dispatch selon la requête

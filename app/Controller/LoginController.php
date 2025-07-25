@@ -3,46 +3,43 @@ namespace App\Controller;
 
 use App\Model\Repository\UserRepository;
 use App\Core\ORM\EntityManager;
-use App\Config\Database;
 
-class LoginController
+class LoginController extends BaseController
 {
+    public function __construct(\App\Config\Container $container)
+    {
+        parent::__construct($container);
+    }
+
     public function showForm(): void
     {
-        require __DIR__ . '/../View/login.php';
+        $this->render('login');
     }
 
     public function handleLogin(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        if (!$this->request->isMethod('POST')) {
             $this->showForm();
             return;
         }
-        require_once __DIR__ . '/../Service/Validator.php';
-        $v = new \Validator($_POST, [
+        $data = $this->request->input();
+        $v = new \Validator($data, [
             'username' => ['required'],
             'password' => ['required']
         ]);
         if (!$v->isValid()) {
-            $this->renderErrors($v->getErrors());
+            $this->render('login', ['errors' => $v->getErrors()]);
             return;
         }
-        $pdo = Database::getPdo();
-        $repo = new UserRepository(new EntityManager($pdo));
-        $user = $repo->findOneBy(['username' => trim($_POST['username'])]);
-        if (!$user || !password_verify($_POST['password'], $user->getPassword())) {
-            $this->renderErrors(['login' => ['Identifiants invalides.']]);
+        $em = $this->container->get(EntityManager::class);
+        $repo = $em->getRepository(\App\Model\Entity\User::class, UserRepository::class);
+        $user = $repo->findOneBy(['username' => trim($data['username'])]);
+        if (!$user || !password_verify($data['password'], $user->getPassword())) {
+            $this->render('login', ['errors' => ['login' => ['Identifiants invalides.']]]);
             return;
         }
         $_SESSION['user_id'] = $user->getId();
         header('Location: /');
         exit;
     }
-
-    private function renderErrors(array $errors): void
-    {
-        $GLOBALS['login_errors'] = $errors;
-        require __DIR__ . '/../View/login.php';
-    }
 }
-

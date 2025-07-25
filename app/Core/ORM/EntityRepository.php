@@ -29,4 +29,9 @@ class EntityRepository
         $data = $this->em->getEntityPersister($this->entityClass)->loadOneBy($criteria);
         return $data ? $this->em->getHydrator()->hydrate($data, $this->entityClass) : null;
     }
+
+    public function exists(array $criteria): bool
+    {
+        return $this->findOneBy($criteria) !== null;
+    }
 }

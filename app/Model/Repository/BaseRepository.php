@@ -10,9 +10,4 @@ class BaseRepository extends EntityRepository
     {
         return count($this->findBy($criteria));
     }
-    
-    public function exists(array $criteria): bool
-    {
-        return $this->findOneBy($criteria) !== null;
-    }
 }
