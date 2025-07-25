@@ -2,15 +2,16 @@
 
 namespace App\Controller;
 
-class IndexController extends BaseController
+class ErrorController extends BaseController
 {
     public function __construct(\App\Config\Container $container)
     {
         parent::__construct($container);
     }
 
-    public function show()
+    public function notFound(): void
     {
-        $this->render('index');
+        http_response_code(response_code: 404);
+        $this->render('404');
     }
 }

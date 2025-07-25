@@ -168,6 +168,26 @@
                 color: inherit !important;
             }
         }
+        /* --- Animation flash vintage sur le logo polaroid --- */
+        .logo-polaroid-anim {
+            animation: polaroid-flash 3.5s cubic-bezier(.8,.2,.2,1) infinite;
+            cursor: pointer;
+        }
+        .logo-polaroid-flash {
+            animation: polaroid-flash-click 0.5s cubic-bezier(.8,.2,.2,1) 1;
+        }
+        @keyframes polaroid-flash {
+            0%, 100% { filter: brightness(1) drop-shadow(0 0 0 #fff1b6); }
+            8% { filter: brightness(1.7) drop-shadow(0 0 16px #fff1b6); }
+            12% { filter: brightness(1) drop-shadow(0 0 0 #fff1b6); }
+            15% { filter: brightness(1.3) drop-shadow(0 0 8px #ffb347); }
+            18% { filter: brightness(1) drop-shadow(0 0 0 #fff1b6); }
+        }
+        @keyframes polaroid-flash-click {
+            0% { filter: brightness(1.7) drop-shadow(0 0 24px #fff1b6); }
+            40% { filter: brightness(1.2) drop-shadow(0 0 8px #ffb347); }
+            100% { filter: brightness(1) drop-shadow(0 0 0 #fff1b6); }
+        }
     </style>
 </head>
 <body class="flex flex-col md:flex-row bg-gradient-to-br from-sand via-sand2 to-sand3 dark:bg-darksoft font-modern min-h-screen transition-colors duration-300">
@@ -186,7 +206,7 @@
         <!-- Logo Polaroid -->
         <div class="mb-12">
             <div class="rounded-polaroid shadow-polaroid bg-sand2/90 dark:bg-darksoft p-4 border-8 border-pastel-yellow dark:border-softbrown flex flex-col items-center">
-                <span class="text-5xl drop-shadow-lg">
+                <span class="text-5xl drop-shadow-lg logo-polaroid-anim" id="logo-polaroid-desktop">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-sepia dark:text-pastel-yellow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <rect x="3" y="5" width="18" height="14" rx="3" fill="#fff1b6" stroke="#704214" stroke-width="2"/>
                         <circle cx="12" cy="12" r="3" fill="#b5d8eb" stroke="#704214" stroke-width="2"/>
@@ -251,10 +271,10 @@
     <div class="sidebar-overlay fixed inset-0 z-40"></div>
     <aside class="sidebar-mobile fixed top-0 left-0 h-full w-64 bg-sand2/95 dark:bg-darkbrown shadow-lg flex flex-col items-center py-10 border-r-8 border-softgray dark:border-darksoft z-50 transform -translate-x-full transition-transform duration-300"
         style="background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');">
-        <!-- Logo Polaroid -->
+        <!-- Logo Polaroid (sidebar mobile) -->
         <div class="mb-12 mt-8">
             <div class="rounded-polaroid shadow-polaroid bg-sand2/90 dark:bg-darksoft p-4 border-8 border-pastel-yellow dark:border-softbrown flex flex-col items-center">
-                <span class="text-5xl drop-shadow-lg">
+                <span class="text-5xl drop-shadow-lg logo-polaroid-anim" id="logo-polaroid-mobile">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-sepia dark:text-pastel-yellow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <rect x="3" y="5" width="18" height="14" rx="3" fill="#fff1b6" stroke="#704214" stroke-width="2"/>
                         <circle cx="12" cy="12" r="3" fill="#b5d8eb" stroke="#704214" stroke-width="2"/>
@@ -444,6 +464,20 @@
         setThemeBtn();
         setThemeBtnMobile();
         feather.replace();
+
+        // Flash effect on polaroid logo click (desktop & mobile)
+        function addPolaroidFlash(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('click', () => {
+                el.classList.remove('logo-polaroid-flash'); // reset if needed
+                void el.offsetWidth; // force reflow
+                el.classList.add('logo-polaroid-flash');
+                setTimeout(() => el.classList.remove('logo-polaroid-flash'), 500);
+            });
+        }
+        addPolaroidFlash('logo-polaroid-desktop');
+        addPolaroidFlash('logo-polaroid-mobile');
     </script>
 </body>
 </html>

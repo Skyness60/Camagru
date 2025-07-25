@@ -75,9 +75,13 @@ class EntityManager
         return $data ? $this->hydrator->hydrate($data, $entityClass) : null;
     }
 
-    public function getRepository(string $entityClass): EntityRepository
+    /**
+     * Get a repository for an entity class.
+     * Optionally pass a custom repository class name.
+     */
+    public function getRepository(string $entityClass, string $repositoryClass = EntityRepository::class): EntityRepository
     {
-        return new EntityRepository($this, $entityClass);
+        return new $repositoryClass($this, $entityClass);
     }
 
     public function getConnection(): PDO
