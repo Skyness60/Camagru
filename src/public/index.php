@@ -12,14 +12,15 @@ use App\Controller\RegisterController;
 
 $router = new Router();
 // Initialize the container
-$container = new \App\Config\Container(); // Replace with actual container initialization if needed
+$container = new \App\Config\Container();
 
 
 use App\Controller\LoginController;
 use App\Controller\ErrorController;
+use App\Controller\HomeController;
 
 $router->get('/', function () use ($container) {
-    (new IndexController($container))->show();
+    (new HomeController($container))->show();
 });
 
 $router->get('/login', function () use ($container) {

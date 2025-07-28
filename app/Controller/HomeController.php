@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-class IndexController extends BaseController
+class HomeController extends BaseController
 {
     public function __construct(\App\Config\Container $container)
     {
@@ -11,6 +11,6 @@ class IndexController extends BaseController
 
     public function show()
     {
-        $this->render('index');
+        $this->render('home');
     }
 }
