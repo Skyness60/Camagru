@@ -6,11 +6,13 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../app/Service/Validator.php';
 
+use App\Service\Validator;
+
 final class ValidatorTest extends TestCase
 {
     public function testChampsRequis()
     {
-        $validator = new \Validator([
+        $validator = new Validator([
             'email' => '',
             'password' => '',
             'confirm_password' => ''
@@ -25,7 +27,7 @@ final class ValidatorTest extends TestCase
 
     public function testEmailInvalide()
     {
-        $validator = new \Validator([
+        $validator = new Validator([
             'email' => 'foo',
             'password' => 'abcdefgh',
             'confirm_password' => 'abcdefgh'
@@ -40,7 +42,7 @@ final class ValidatorTest extends TestCase
 
     public function testPasswordTropCourt()
     {
-        $validator = new \Validator([
+        $validator = new Validator([
             'email' => 'foo@bar.com',
             'password' => 'abc',
             'confirm_password' => 'abc'
@@ -55,7 +57,7 @@ final class ValidatorTest extends TestCase
 
     public function testPasswordsMismatch()
     {
-        $validator = new \Validator([
+        $validator = new Validator([
             'email' => 'foo@bar.com',
             'password' => 'abcdefgh',
             'confirm_password' => 'abcdefgi'
@@ -70,7 +72,7 @@ final class ValidatorTest extends TestCase
 
     public function testToutValide()
     {
-        $validator = new \Validator([
+        $validator = new Validator([
             'email' => 'foo@bar.com',
             'password' => 'abcdefgh',
             'confirm_password' => 'abcdefgh'

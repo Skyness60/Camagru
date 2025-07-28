@@ -1,5 +1,5 @@
 <?php
-// app/Service/Validator.php
+namespace App\Service;
 
 class Validator
 {

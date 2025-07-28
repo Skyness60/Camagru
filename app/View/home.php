@@ -252,7 +252,42 @@
                         </a>
                     </div>
                 </div>
+                <form action="/logout" method="post" class="w-11/12 mt-4 flex justify-center">
+                    <button type="submit" class="logout-vintage-btn group flex items-center gap-2 px-6 py-2 rounded-polaroid font-retro text-sepia dark:text-pastel-yellow bg-gradient-to-br from-pastel-yellow via-pastel-pink to-pastel-blue dark:from-darksoft dark:via-darkbrown dark:to-[#23211f] border-2 border-sepia dark:border-pastel-yellow shadow-polaroid transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                        <i data-feather="log-out" class="text-xl"></i>
+                        <span class="tracking-widest">Déconnexion</span>
+                    </button>
+                </form>
             </div>
+    <style>
+        .logout-vintage-btn {
+            box-shadow: 0 4px 18px 0 rgba(112,66,20,0.13);
+            letter-spacing: 0.12em;
+            font-size: 1.08rem;
+            font-weight: bold;
+            border-radius: 1.5rem;
+            border-width: 2.5px;
+            border-style: double;
+            border-color: #704214;
+            background-image: linear-gradient(120deg, #fff1b6 0%, #f7cac9 50%, #b5d8eb 100%);
+        }
+        .logout-vintage-btn:hover {
+            background-image: linear-gradient(120deg, #b5d8eb 0%, #f7cac9 50%, #fff1b6 100%);
+            color: #22223b;
+            border-color: #ffb347;
+            box-shadow: 0 8px 32px 0 rgba(255,179,71,0.18);
+        }
+        .dark .logout-vintage-btn {
+            background-image: linear-gradient(120deg, #23211f 0%, #3a2e25 100%);
+            color: #fff1b6;
+            border-color: #ffe082;
+        }
+        .dark .logout-vintage-btn:hover {
+            background-image: linear-gradient(120deg, #3a2e25 0%, #23211f 100%);
+            color: #ffb347;
+            border-color: #ffb347;
+        }
+    </style>
         </nav>
         <button id="theme-toggle" class="toggle-btn mt-auto mb-6 flex items-center gap-2 px-7 py-3 w-48 justify-center relative group focus:outline-none">
             <span class="toggle-slider transition-all duration-300">
