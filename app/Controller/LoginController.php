@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Model\Repository\UserRepository;
 use App\Core\ORM\EntityManager;
 
+use App\Service\Validator;
 class LoginController extends BaseController
 {
     public function __construct(\App\Config\Container $container)
@@ -23,7 +24,7 @@ class LoginController extends BaseController
             return;
         }
         $data = $this->request->input();
-        $v = new \Validator($data, [
+        $v = new Validator($data, [
             'username' => ['required'],
             'password' => ['required']
         ]);

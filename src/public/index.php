@@ -1,8 +1,13 @@
 <?php
 
 use App\Controller\IndexController;
+
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../app/Config/EnvLoader.php';
+
+// Auth middleware: redirige selon l'état de connexion
+require_once __DIR__ . '/../app/Middleware/AuthMiddleware.php';
+\App\Middleware\AuthMiddleware::checkAuth();
 
 \App\Config\EnvLoader::load(__DIR__ . '/../.env');
 
@@ -37,6 +42,10 @@ $router->get('/register', function () use ($container) {
 
 $router->post('/register', function () use ($container) {
     (new RegisterController($container))->handleRegister();
+});
+
+$router->post('/logout', function () {
+    (new \App\Controller\LogoutController())->logout();
 });
 
 // Route 404
