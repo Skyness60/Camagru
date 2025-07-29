@@ -23,23 +23,22 @@ class RegisterController extends BaseController
             $this->render('register');
             return;
         }
-
         $data = $this->request->input();
-
+        if (!\App\Service\Csrf::checkToken($data['csrf_token'] ?? null)) {
+            $this->render('register', ['errors' => ['csrf' => ["Le token CSRF est invalide."]]]);
+            return;
+        }
         $validator = new RegisterValidator($data);
         if (!$validator->validate()) {
             $this->render('register', ['errors' => $validator->getErrors()]);
             return;
         }
-
         $registerService = $this->container->get(RegisterService::class);
         $errors = $registerService->register($data);
-
         if (!empty($errors)) {
             $this->render('register', ['errors' => $errors]);
             return;
         }
-
         header('Location: /login');
         exit;
     }

@@ -1,10 +1,12 @@
 <?php
 namespace App\Controller;
+use App\Service\AuthService;
 
 use App\Model\Repository\UserRepository;
 use App\Core\ORM\EntityManager;
 
-use App\Service\Validator;
+use App\Handler\LoginHandler;
+
 class LoginController extends BaseController
 {
     public function __construct(\App\Config\Container $container)
@@ -19,28 +21,9 @@ class LoginController extends BaseController
 
     public function handleLogin(): void
     {
-        if (!$this->request->isMethod('POST')) {
-            $this->showForm();
-            return;
-        }
-        $data = $this->request->input();
-        $v = new Validator($data, [
-            'username' => ['required'],
-            'password' => ['required']
-        ]);
-        if (!$v->isValid()) {
-            $this->render('login', ['errors' => $v->getErrors()]);
-            return;
-        }
         $em = $this->container->get(EntityManager::class);
-        $repo = $em->getRepository(\App\Model\Entity\User::class, UserRepository::class);
-        $user = $repo->findOneBy(['username' => trim($data['username'])]);
-        if (!$user || !password_verify($data['password'], $user->getPassword())) {
-            $this->render('login', ['errors' => ['login' => ['Identifiants invalides.']]]);
-            return;
-        }
-        $_SESSION['user_id'] = $user->getId();
-        header('Location: /');
-        exit;
+        $recaptchaSecret = $_ENV['RECAPTCHA_SECRET_KEY'] ?? '';
+        $handler = new LoginHandler($em, $recaptchaSecret);
+        $handler->process($this->request, fn($view, $params = []) => $this->render($view, $params));
     }
 }

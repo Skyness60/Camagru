@@ -1,3 +1,8 @@
+<?php if (isset($user)): ?>
+    <div class="text-lg font-bold p-4">
+        Bienvenue, <?= htmlspecialchars($user->getUsername(), ENT_QUOTES, 'UTF-8') ?> !
+    </div>
+<?php endif; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -253,6 +258,7 @@
                     </div>
                 </div>
                 <form action="/logout" method="post" class="w-11/12 mt-4 flex justify-center">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\App\Service\Csrf::generateToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <button type="submit" class="logout-vintage-btn group flex items-center gap-2 px-6 py-2 rounded-polaroid font-retro text-sepia dark:text-pastel-yellow bg-gradient-to-br from-pastel-yellow via-pastel-pink to-pastel-blue dark:from-darksoft dark:via-darkbrown dark:to-[#23211f] border-2 border-sepia dark:border-pastel-yellow shadow-polaroid transition-all duration-300 hover:scale-105 hover:shadow-xl">
                         <i data-feather="log-out" class="text-xl"></i>
                         <span class="tracking-widest">Déconnexion</span>
