@@ -35,9 +35,20 @@
                     <span class="text-4xl font-bold text-gray-900 flicker">🎞️</span>
                 </div>
             </div>
+                <?php if (!empty($errors['generic'][0])): ?>
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
+                        <?= htmlspecialchars($errors['generic'][0] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($errors['csrf'][0])): ?>
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
+                        <?= htmlspecialchars($errors['csrf'][0] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                <?php endif; ?>
             <h2 class="text-2xl font-bold mb-8 text-center text-gray-800 tracking-widest font-mono mt-12"
                 style="letter-spacing: 0.18em; text-shadow: 1px 1px 0 #e5d5c2;">Inscription Camagru Retro</h2>
             <form action="/register" method="POST" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\App\Service\Csrf::generateToken(), ENT_QUOTES, 'UTF-8'); ?>">
                 <div>
                     <label for="firstName" class="block text-gray-700 mb-2 font-semibold font-mono">Prénom</label>
                     <input type="text" id="firstName" name="firstName" required
